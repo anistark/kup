@@ -1,4 +1,6 @@
-kup
+kinetic Unplugged Player
 ===
 
-Kinetic Unplugged Player- A simple Android Music player app
+A simple Android Music player app
+
+In development phase..
