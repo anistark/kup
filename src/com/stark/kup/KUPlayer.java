@@ -1,69 +1,84 @@
 package com.stark.kup;
 
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
-import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+
+import com.stark.kup.MusicService.MusicBinder;
+
+import android.net.Uri;
+import android.content.ContentResolver;
+import android.database.Cursor;
+import android.widget.ListView;
+import android.os.IBinder;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.view.MenuItem;
 import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
 
 public class KUPlayer extends Activity {
-	Button btnplay, btnpause, btnstop;
-	MediaPlayer mMediaPlayer;
-	TextView tvdur;
+	private ArrayList<Song> songList;
+	private ListView songView;
+	private MusicService musicSrv;
+	private Intent playIntent;
+	private boolean musicBound=false;
 	
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        btnplay= (Button)findViewById(R.id.btnplay);
-        btnpause= (Button)findViewById(R.id.btnpause);
-        btnstop= (Button)findViewById(R.id.btnstop);
-        tvdur= (TextView)findViewById(R.id.tvdur);
-        
-        mMediaPlayer= MediaPlayer.create(this, R.raw.a);
-        
-        btnplay.setOnClickListener(new OnClickListener(){
-
-			@Override
-			public void onClick(View v) {
-				// TODO Auto-generated method stub
-				Toast.makeText(getApplicationContext(), "Starting to Play", Toast.LENGTH_SHORT).show();
-				mMediaPlayer.start();
-				tvdur.setText("Song Now Playing");
-			}
-        	
-        });
-        
-        btnpause.setOnClickListener(new OnClickListener(){
-
-			@Override
-			public void onClick(View v) {
-				// TODO Auto-generated method stub
-				Toast.makeText(getApplicationContext(), "Pausing", Toast.LENGTH_SHORT).show();
-				mMediaPlayer.pause();
-			}
-        	
-        });
-        
-        btnstop.setOnClickListener(new OnClickListener(){
-
-			@Override
-			public void onClick(View v) {
-				// TODO Auto-generated method stub
-				Toast.makeText(getApplicationContext(), "Stopping", Toast.LENGTH_SHORT).show();
-				mMediaPlayer.stop();
-			}
-        	
-        });
+        songView = (ListView)findViewById(R.id.song_list);
+        songList = new ArrayList<Song>();
+        getSongList();
+        Collections.sort(songList, new Comparator<Song>(){
+        	  public int compare(Song a, Song b){
+        	    return a.getTitle().compareTo(b.getTitle());
+        	  }
+        	});
+        SongAdapter songAdt = new SongAdapter(this, songList);
+        songView.setAdapter(songAdt);
+    }
+    
+  //connect to the service
+    private ServiceConnection musicConnection = new ServiceConnection(){
+     
+      @Override
+      public void onServiceConnected(ComponentName name, IBinder service) {
+        MusicBinder binder = (MusicBinder)service;
+        //get service
+        musicSrv = binder.getService();
+        //pass list
+        musicSrv.setList(songList);
+        musicBound = true;
+      }
+     
+      @Override
+      public void onServiceDisconnected(ComponentName name) {
+        musicBound = false;
+      }
+    };
+    
+    public void songPicked(View view){
+    	  musicSrv.setSong(Integer.parseInt(view.getTag().toString()));
+    	  musicSrv.playSong();
+    	}
+    
+    @Override
+    protected void onStart() {
+      super.onStart();
+      if(playIntent==null){
+        playIntent = new Intent(this, MusicService.class);
+        bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+        startService(playIntent);
+      }
     }
     
     /* Initiating Menu XML file (playermenu.xml) */
@@ -80,45 +95,50 @@ public class KUPlayer extends Activity {
      * Identify single menu item by it's id
      * */
     @Override
-    public boolean onOptionsItemSelected(MenuItem item)
-    {
-        
-        switch (item.getItemId())
-        {
-        /*case R.id.menu_bookmark:
-        	// Single menu item is selected do something
-        	// Ex: launching new activity/screen or show alert message
-            Toast.makeText(this, "Bookmark is Selected", Toast.LENGTH_SHORT).show();
-            return true;
-        case R.id.menu_save:
-        	Toast.makeText(this, "Save is Selected", Toast.LENGTH_SHORT).show();
-            return true;
-        case R.id.menu_search:
-        	Toast.makeText(this, "Search is Selected", Toast.LENGTH_SHORT).show();
-            return true;
-        case R.id.menu_share:
-        	Toast.makeText(this, "Share is Selected", Toast.LENGTH_SHORT).show();
-            return true;
-        case R.id.menu_delete:
-        	Toast.makeText(this, "Delete is Selected", Toast.LENGTH_SHORT).show();
-            return true;*/
-        case R.id.menu_credit:
-        	//Toast.makeText(this, "Preferences is Selected", Toast.LENGTH_SHORT).show();
-        	AlertDialog.Builder alertcredit = new AlertDialog.Builder(this);
-        	alertcredit.setTitle("App Credit");
-        	alertcredit.setMessage("Kumar Anirudha");
-        	alertcredit.setCancelable(false);
-        	alertcredit.setNeutralButton("OK", new DialogInterface.OnClickListener()
-            {
-              public void onClick(DialogInterface paramAnonymousDialogInterface, int paramAnonymousInt)
-              {
-              }
-            });
-        	alertcredit.create().show();
-        	return true;
-        default:
-            return super.onOptionsItemSelected(item);
-        }
+    public boolean onOptionsItemSelected(MenuItem item) {
+      //menu item selected
+    	switch (item.getItemId()) {
+    	case R.id.action_shuffle:
+    	  //shuffle
+    	  break;
+    	case R.id.action_end:
+    	  stopService(playIntent);
+    	  musicSrv=null;
+    	  System.exit(0);
+    	  break;
+    	}
+    	return super.onOptionsItemSelected(item);
     }
+    
+    @Override
+    protected void onDestroy() {
+      stopService(playIntent);
+      musicSrv=null;
+      super.onDestroy();
+    }
+    
+    public void getSongList() {
+    	//retrieve song info
+    	ContentResolver musicResolver = getContentResolver();
+    	Uri musicUri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+    	Cursor musicCursor = musicResolver.query(musicUri, null, null, null, null);
+    	if(musicCursor!=null && musicCursor.moveToFirst()){
+    		  //get columns
+    		  int titleColumn = musicCursor.getColumnIndex
+    		    (android.provider.MediaStore.Audio.Media.TITLE);
+    		  int idColumn = musicCursor.getColumnIndex
+    		    (android.provider.MediaStore.Audio.Media._ID);
+    		  int artistColumn = musicCursor.getColumnIndex
+    		    (android.provider.MediaStore.Audio.Media.ARTIST);
+    		  //add songs to list
+    		  do {
+    		    long thisId = musicCursor.getLong(idColumn);
+    		    String thisTitle = musicCursor.getString(titleColumn);
+    		    String thisArtist = musicCursor.getString(artistColumn);
+    		    songList.add(new Song(thisId, thisTitle, thisArtist));
+    		  }
+    		  while (musicCursor.moveToNext());
+    		}
+    	}
     
 }

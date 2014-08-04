@@ -1,39 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools"
+  android:layout_width="fill_parent"
+  android:layout_height="fill_parent"
+  android:orientation="vertical"
+  android:background="#FF330000"
+  tools:context=".KUPlayer" >
+ 
+  <ListView
+    android:id="@+id/song_list"
     android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    android:orientation="vertical"
-    android:background="#297d88" >
-    
-    <TextView 
-        android:id="@+id/tvdur"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:hint="Song Duration goes here" />
-    
-    <LinearLayout 
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        
-        <Button
-        	android:id="@+id/btnplay"
-        	android:layout_width="wrap_content"
-        	android:layout_height="wrap_content"
-        	android:background="@drawable/img_btn_play" />
-        
-        <Button
-        	android:id="@+id/btnpause"
-        	android:layout_width="wrap_content"
-        	android:layout_height="wrap_content"
-        	android:background="@drawable/img_btn_pause" />
-        
-        <Button
-        	android:id="@+id/btnstop"
-        	android:layout_width="wrap_content"
-        	android:layout_height="wrap_content"
-        	android:background="@drawable/img_btn_stop" />
-        
-	</LinearLayout>
-	
+    android:layout_height="wrap_content" >
+  </ListView>
+ 
 </LinearLayout>
