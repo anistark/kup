@@ -98,6 +98,10 @@ public class KUPlayer extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
       //menu item selected
     	switch (item.getItemId()) {
+    	//case R.id.action_download:
+    		//download code
+    		//Intent intent = new Intent(KUPlayer.this, Download.class);
+            //startActivity(intent);
     	case R.id.action_shuffle:
     	  //shuffle
     	  break;
